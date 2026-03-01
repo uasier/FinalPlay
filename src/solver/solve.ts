@@ -54,15 +54,18 @@ function isEmpty(hand: Counts): boolean {
 }
 
 function legalMovesFor(hand: Counts, constraint: Play | null, playCache: Map<string, Play[]>): Move[] {
+  const passMove: Move = { kind: "PASS" };
+  const toPlayMove = (play: Play): Move => ({ kind: "PLAY", play });
+
   const key = countsKey(hand);
   let plays = playCache.get(key);
   if (!plays) {
     plays = generateAllPlays(hand);
     playCache.set(key, plays);
   }
-  if (!constraint) return plays.map((p) => ({ kind: "PLAY", play: p }));
+  if (!constraint) return plays.map(toPlayMove);
   const beaters = plays.filter((p) => canBeat(p, constraint));
-  return [{ kind: "PASS" }, ...beaters.map((p) => ({ kind: "PLAY", play: p }))];
+  return [passMove, ...beaters.map(toPlayMove)];
 }
 
 function sanitizeCounts(c: Counts): Counts {
