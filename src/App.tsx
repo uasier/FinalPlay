@@ -1,9 +1,11 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Card, DECK, Owner, cardsToCounts } from "./solver/cards";
 import { SolveResult, solveGame } from "./solver/solve";
 import { DeckGrid } from "./components/DeckGrid";
 import { Hand } from "./components/Hand";
 import { StrategyPanel } from "./components/StrategyPanel";
+import { RuleConfigPanel } from "./components/RuleConfigPanel";
+import { DEFAULT_RULE_CONFIG, normalizeRuleConfig, RuleConfig } from "./solver/rule-config";
 
 type Tool = Owner | "erase";
 
@@ -19,10 +21,34 @@ export default function App() {
     return base;
   });
 
+  const [ruleConfig, setRuleConfig] = useState<RuleConfig>(() => {
+    if (typeof window === "undefined") return DEFAULT_RULE_CONFIG;
+    try {
+      const raw = localStorage.getItem("ruleConfig.v1");
+      if (!raw) return DEFAULT_RULE_CONFIG;
+      return normalizeRuleConfig(JSON.parse(raw));
+    } catch {
+      return DEFAULT_RULE_CONFIG;
+    }
+  });
+
   const [solving, setSolving] = useState(false);
   const [result, setResult] = useState<SolveResult | null>(null);
   const cardsA = useMemo(() => getCardsForOwner(ownerById, "A"), [ownerById]);
   const cardsB = useMemo(() => getCardsForOwner(ownerById, "B"), [ownerById]);
+
+  useEffect(() => {
+    setResult(null);
+  }, [ruleConfig]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      localStorage.setItem("ruleConfig.v1", JSON.stringify(ruleConfig));
+    } catch {
+      // ignore
+    }
+  }, [ruleConfig]);
 
   function setOwner(cardId: string, nextOwner: Owner | null) {
     setOwnerById((prev) => {
@@ -47,7 +73,7 @@ export default function App() {
     try {
       const handA = cardsToCounts(cardsA);
       const handB = cardsToCounts(cardsB);
-      setResult(solveGame(handA, handB));
+      setResult(solveGame(handA, handB, ruleConfig));
     } finally {
       setSolving(false);
     }
@@ -127,15 +153,16 @@ export default function App() {
                 <Hand owner="A" cards={cardsA} onRemove={(id) => setOwner(id, null)} />
                 <Hand owner="B" cards={cardsB} onRemove={(id) => setOwner(id, null)} />
               </div>
-              <div className="mt-4">
-                <DeckGrid
-                  tool={tool}
-                  ownerById={ownerById}
-                  onAssign={(cardId) => setOwner(cardId, tool === "erase" ? null : tool)}
-                />
-              </div>
-            </div>
-          </section>
+	              <div className="mt-4">
+	                <DeckGrid
+	                  tool={tool}
+	                  ownerById={ownerById}
+	                  onAssign={(cardId) => setOwner(cardId, tool === "erase" ? null : tool)}
+	                />
+	              </div>
+	              <RuleConfigPanel config={ruleConfig} onChange={setRuleConfig} disabled={solving} />
+	            </div>
+	          </section>
 
           <section className="lg:col-span-5">
             <StrategyPanel solving={solving} result={result} />
@@ -145,4 +172,3 @@ export default function App() {
     </div>
   );
 }
-

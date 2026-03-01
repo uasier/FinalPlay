@@ -3,29 +3,13 @@ import { formatMove } from "../solver/format";
 import { SolveResult, StrategyNode } from "../solver/solve";
 import { otherPlayer } from "../solver/ranks";
 import { Move, PlayType, Player } from "../solver/types";
+import { PLAY_TYPES, PLAY_TYPE_LABEL } from "../solver/playtype-meta";
 
 function turnChip(turn: StrategyNode["turn"]): string {
   return turn === "A"
     ? "border-sky-400/30 bg-sky-500/15 text-sky-100"
     : "border-fuchsia-400/30 bg-fuchsia-500/15 text-fuchsia-100";
 }
-
-const PLAY_TYPE_LABEL: Record<PlayType, string> = {
-  single: "单",
-  pair: "对",
-  triple: "三",
-  triple_single: "三带一",
-  triple_pair: "三带二",
-  straight: "顺子",
-  straight_pairs: "连对",
-  airplane: "飞机",
-  airplane_single: "飞机带单",
-  airplane_pair: "飞机带对",
-  four_two: "四带二",
-  four_two_pairs: "四带两对",
-  bomb: "炸弹",
-  rocket: "王炸"
-};
 
 type TreeMeta = { nodes: number; maxDepth: number; truncated: boolean };
 
@@ -291,7 +275,7 @@ function StrategyExplorer({
                 >
                   全部 ({children.length})
                 </button>
-                {(["PASS", ...Object.keys(PLAY_TYPE_LABEL)] as Array<"PASS" | PlayType>).map((k) => {
+                {(["PASS", ...PLAY_TYPES] as Array<"PASS" | PlayType>).map((k) => {
                   const c = typeCounts.get(k) ?? 0;
                   if (c === 0) return null;
                   const label = k === "PASS" ? "过" : PLAY_TYPE_LABEL[k];

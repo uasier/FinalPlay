@@ -2,6 +2,7 @@ import { generateAllPlays } from "./playgen";
 import { otherPlayer } from "./ranks";
 import { canBeat } from "./rules";
 import { Counts, GameState, Move, Play, Player, RankValue } from "./types";
+import { DEFAULT_RULE_CONFIG, RuleConfig, ruleKey } from "./rule-config";
 
 export type StrategyNode = {
   turn: Player;
@@ -53,14 +54,20 @@ function isEmpty(hand: Counts): boolean {
   return true;
 }
 
-function legalMovesFor(hand: Counts, constraint: Play | null, playCache: Map<string, Play[]>): Move[] {
+function legalMovesFor(
+  hand: Counts,
+  constraint: Play | null,
+  playCache: Map<string, Play[]>,
+  rulesKey: string,
+  allow: RuleConfig["allow"],
+): Move[] {
   const passMove: Move = { kind: "PASS" };
   const toPlayMove = (play: Play): Move => ({ kind: "PLAY", play });
 
-  const key = countsKey(hand);
+  const key = `${rulesKey}|${countsKey(hand)}`;
   let plays = playCache.get(key);
   if (!plays) {
-    plays = generateAllPlays(hand);
+    plays = generateAllPlays(hand, allow);
     playCache.set(key, plays);
   }
   if (!constraint) return plays.map(toPlayMove);
@@ -76,10 +83,11 @@ function sanitizeCounts(c: Counts): Counts {
 
 type MemoEntry = { winForA: boolean; node?: StrategyNode };
 
-export function solveGame(handA: Counts, handB: Counts): SolveResult {
+export function solveGame(handA: Counts, handB: Counts, rules: RuleConfig = DEFAULT_RULE_CONFIG): SolveResult {
   const playCache = new Map<string, Play[]>();
   const memo = new Map<string, MemoEntry>();
   const stats: SolveStats = { statesVisited: 0, memoHits: 0, playCacheSize: 0 };
+  const rulesKey = ruleKey(rules);
 
   const start: GameState = {
     a: sanitizeCounts(handA),
@@ -111,7 +119,7 @@ export function solveGame(handA: Counts, handB: Counts): SolveResult {
 
     const turn = state.turn;
     const currentHand = turn === "A" ? state.a : state.b;
-    const moves = legalMovesFor(currentHand, state.constraint, playCache);
+    const moves = legalMovesFor(currentHand, state.constraint, playCache, rulesKey, rules.allow);
     stats.playCacheSize = Math.max(stats.playCacheSize, playCache.size);
 
     if (turn === "A") {
