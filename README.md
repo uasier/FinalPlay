@@ -5,8 +5,8 @@
 ## 开发启动
 
 ```bash
-npm install
-npm run dev
+pnpm install
+pnpm dev
 ```
 
 ## 自动部署（Vercel + GitHub Actions）
@@ -19,6 +19,13 @@ npm run dev
    - `VERCEL_ORG_ID`
    - `VERCEL_PROJECT_ID`
 3. 工作流文件：`.github/workflows/vercel-deploy.yml`
+
+## 访问统计（Vercel Web Analytics）
+
+已集成 Vercel Analytics（页面访问统计会在 Vercel 项目面板里展示）。
+
+1. Vercel 控制台 → 你的 Project → `Analytics` / `Web Analytics` → 启用
+2. 代码侧已添加 `<Analytics />`（`src/main.tsx`），重新部署后开始采集
 
 ## 使用方式
 
