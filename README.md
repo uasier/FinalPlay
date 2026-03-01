@@ -9,6 +9,17 @@ npm install
 npm run dev
 ```
 
+## 自动部署（Vercel + GitHub Actions）
+
+已提供 GitHub Actions 工作流：推送到 `main/master` 自动生产部署；PR 自动预览部署。
+
+1. 在 Vercel 创建/导入项目（可以先在本地运行一次 `vercel link` 绑定项目）
+2. 在 GitHub 仓库 Settings → Secrets and variables → Actions 添加 Secrets：
+   - `VERCEL_TOKEN`
+   - `VERCEL_ORG_ID`
+   - `VERCEL_PROJECT_ID`
+3. 工作流文件：`.github/workflows/vercel-deploy.yml`
+
 ## 使用方式
 
 1. 选择上方工具：`指派给 A` / `指派给 B` / `橡皮擦`
