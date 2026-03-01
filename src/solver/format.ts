@@ -30,9 +30,9 @@ export function formatPlay(play: Play): string {
     case "airplane":
       return `飞机(${play.length}) ${cardsText}`;
     case "airplane_single":
-      return `飞机带单(${play.length}) ${cardsText}`;
+      return `飞机带双单(${play.length}) ${cardsText}`;
     case "airplane_pair":
-      return `飞机带对(${play.length}) ${cardsText}`;
+      return `飞机带双对(${play.length}) ${cardsText}`;
     case "four_two":
       return `四带二 ${cardsText}`;
     case "four_two_pairs":
@@ -50,4 +50,3 @@ export function formatMove(move: Move): string {
   if (move.kind === "PASS") return "过";
   return formatPlay(move.play);
 }
-

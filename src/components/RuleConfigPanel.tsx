@@ -18,12 +18,9 @@ const TOGGLES: ToggleDef[] = [
   { id: "triple_pair", label: "三带二", types: ["triple_pair"] },
   { id: "straight", label: "顺子", types: ["straight"] },
   { id: "straight_pairs", label: "连对", types: ["straight_pairs"] },
-  {
-    id: "airplane_all",
-    label: "飞机（含带翅膀）",
-    types: ["airplane", "airplane_single", "airplane_pair"],
-    hint: "飞机 / 飞机带单 / 飞机带对"
-  },
+  { id: "airplane", label: "飞机", types: ["airplane"], hint: "连三（长度≥2）" },
+  { id: "airplane_single", label: "飞机带双单", types: ["airplane_single"], hint: "连三 + 等量单牌" },
+  { id: "airplane_pair", label: "飞机带双对", types: ["airplane_pair"], hint: "连三 + 等量对子" },
   { id: "four_two", label: "四带二", types: ["four_two"] },
   { id: "four_two_pairs", label: "四带两对", types: ["four_two_pairs"] },
   { id: "bomb", label: "炸弹", types: ["bomb"] },

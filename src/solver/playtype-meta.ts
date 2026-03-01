@@ -26,8 +26,8 @@ export const PLAY_TYPE_LABEL: Record<PlayType, string> = {
   straight: "顺子",
   straight_pairs: "连对",
   airplane: "飞机",
-  airplane_single: "飞机带单",
-  airplane_pair: "飞机带对",
+  airplane_single: "飞机带双单",
+  airplane_pair: "飞机带双对",
   four_two: "四带二",
   four_two_pairs: "四带两对",
   bomb: "炸弹",
@@ -42,4 +42,3 @@ export const PLAY_TYPE_GROUPS: Array<{ title: string; types: PlayType[] }> = [
   { title: "四带", types: ["four_two", "four_two_pairs"] },
   { title: "炸弹", types: ["bomb", "rocket"] }
 ];
-

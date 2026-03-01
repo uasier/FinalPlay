@@ -692,7 +692,7 @@ export function StrategyPanel({ solving, result }: { solving: boolean; result: S
                   <ul className="mt-2 list-disc space-y-1 pl-5 text-xs text-slate-400">
                     <li>A 回合只展示「策略推荐」的一手牌。</li>
                     <li>B 回合会列出所有合法应对（包含“过”），每条分支都通向 A 的胜局。</li>
-                    <li>牌型覆盖：单/对/三/三带一/三带二/顺子/连对/飞机(含带翅膀)/四带二/四带两对/炸弹/王炸。</li>
+                    <li>牌型覆盖：单/对/三/三带一/三带二/顺子/连对/飞机/飞机带双单/飞机带双对/四带二/四带两对/炸弹/王炸。</li>
                   </ul>
                 </div>
               ) : (
