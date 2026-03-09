@@ -9,6 +9,8 @@ pnpm install
 pnpm dev
 ```
 
+默认本地开发端口为 `10001`。
+
 ## 自动部署（Vercel + GitHub Actions）
 
 已提供 GitHub Actions 工作流：推送到 `main/master` 自动生产部署；PR 自动预览部署。
