@@ -1,6 +1,9 @@
-import { useEffect, useRef, useState } from "react";
-import { cardsToCounts } from "./solver/cards";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { cardsToCounts, DECK } from "./solver/cards";
 import { PRESETS } from "./solver/presets";
+import { decodeShareHash, encodeShareHash } from "./solver/share";
+import { RuleConfig } from "./solver/rule-config";
+import { Counts } from "./solver/types";
 import { useHands } from "./hooks/useHands";
 import { useRuleConfig } from "./hooks/useRuleConfig";
 import { useSolver } from "./hooks/useSolver";
@@ -21,14 +24,53 @@ export default function App() {
   const solver = useSolver();
   const [presetIndex, setPresetIndex] = useState(0);
   const resultsRef = useRef<HTMLDivElement | null>(null);
+  /** 分享链接解析出的待求解局面：先让牌面与规则状态落地，再自动触发求解 */
+  const [pendingSolve, setPendingSolve] = useState<{
+    a: Counts;
+    b: Counts;
+    rules: RuleConfig;
+  } | null>(null);
 
   const solving = solver.state.status === "solving";
-  const { reset } = solver;
+  const { reset, solve } = solver;
+  const { loadPreset } = hands;
+
+  // 首次加载解析分享链接：载入牌面与规则，并登记自动求解
+  useEffect(() => {
+    const payload = decodeShareHash(window.location.hash);
+    if (!payload) return;
+    loadPreset({ name: "分享局面", description: "来自分享链接", a: payload.a, b: payload.b });
+    setRuleConfig(payload.rules);
+    const byId = new Map(DECK.map((c) => [c.id, c]));
+    setPendingSolve({
+      a: cardsToCounts(payload.a.map((id) => byId.get(id)!)),
+      b: cardsToCounts(payload.b.map((id) => byId.get(id)!)),
+      rules: payload.rules,
+    });
+  }, [loadPreset, setRuleConfig]);
 
   // 手牌或规则变化后，旧结果不再对应当前局面
   useEffect(() => {
     reset();
   }, [hands.ownerById, ruleConfig, reset]);
+
+  // 分享局面自动求解：声明在重置副作用之后，确保同一轮渲染中先重置再求解
+  useEffect(() => {
+    if (!pendingSolve) return;
+    setPendingSolve(null);
+    solve(pendingSolve.a, pendingSolve.b, pendingSolve.rules);
+  }, [pendingSolve, solve]);
+
+  // 当前牌面与规则对应的分享链接（双方均有手牌时可用）
+  const shareUrl = useMemo(() => {
+    if (hands.cardsA.length === 0 || hands.cardsB.length === 0) return null;
+    const hash = encodeShareHash(
+      hands.cardsA.map((c) => c.id),
+      hands.cardsB.map((c) => c.id),
+      ruleConfig,
+    );
+    return `${window.location.origin}${window.location.pathname}#${hash}`;
+  }, [hands.cardsA, hands.cardsB, ruleConfig]);
 
   // 移动端求解完成后滚动到结果区
   useEffect(() => {
@@ -143,7 +185,12 @@ export default function App() {
 
           {/* 右：求解结果 */}
           <div ref={resultsRef} className="scroll-mt-4 lg:sticky lg:top-5">
-            <ResultsPanel state={solver.state} onCancel={solver.cancel} />
+            <ResultsPanel
+              state={solver.state}
+              onCancel={solver.cancel}
+              ruleConfig={ruleConfig}
+              shareUrl={shareUrl}
+            />
           </div>
         </div>
       </main>

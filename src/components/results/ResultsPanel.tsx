@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
 import { SolverState } from "../../hooks/useSolver";
+import { RuleConfig } from "../../solver/rule-config";
 import { Panel } from "../../ui/Panel";
 import { Button } from "../../ui/Button";
 import { Segmented } from "../../ui/Segmented";
 import { SummaryBanner } from "./SummaryBanner";
 import { Stepper } from "./Stepper";
 import { Explorer } from "./Explorer";
+import { StrategyExport } from "./StrategyExport";
 
 function IdleGuide() {
   const steps = [
@@ -57,7 +59,17 @@ function SolvingCard({ statesVisited, onCancel }: { statesVisited: number; onCan
 }
 
 /** 右侧（或移动端下方）的求解结果区。 */
-export function ResultsPanel({ state, onCancel }: { state: SolverState; onCancel: () => void }) {
+export function ResultsPanel({
+  state,
+  onCancel,
+  ruleConfig,
+  shareUrl,
+}: {
+  state: SolverState;
+  onCancel: () => void;
+  ruleConfig: RuleConfig;
+  shareUrl: string | null;
+}) {
   const [tab, setTab] = useState<"step" | "explore">("step");
 
   useEffect(() => {
@@ -78,6 +90,7 @@ export function ResultsPanel({ state, onCancel }: { state: SolverState; onCancel
           <SummaryBanner result={state.result} elapsedMs={state.elapsedMs} />
           {state.result.ok && (
             <>
+              <StrategyExport root={state.result.strategy} rules={ruleConfig} shareUrl={shareUrl} />
               <Segmented
                 size="sm"
                 options={[

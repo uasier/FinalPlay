@@ -3,6 +3,7 @@ import { formatMove } from "../../solver/format";
 import { StrategyNode } from "../../solver/solve";
 import { Move, Player } from "../../solver/types";
 import { Button } from "../../ui/Button";
+import { copyText } from "../../utils/clipboard";
 import { PLAYER_THEME } from "../players";
 
 type PathEntry = { node: StrategyNode; viaMove: Move | null };
@@ -56,12 +57,9 @@ export function Stepper({ root }: { root: StrategyNode }) {
     const lines = history.map((h, i) => `${i + 1}. ${h.actor} ${formatMove(h.move)}`);
     if (finished) lines.push("—— A 手牌出完，获胜 ——");
     const text = lines.join("\n");
-    try {
-      await navigator.clipboard.writeText(text);
+    if (await copyText(text)) {
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
-    } catch {
-      // 剪贴板不可用时静默降级
     }
   }
 
