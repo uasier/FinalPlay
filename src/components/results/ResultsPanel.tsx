@@ -8,6 +8,7 @@ import { SummaryBanner } from "./SummaryBanner";
 import { Stepper } from "./Stepper";
 import { Explorer } from "./Explorer";
 import { StrategyExport } from "./StrategyExport";
+import { StrategyGraph } from "./StrategyGraph";
 
 function IdleGuide() {
   const steps = [
@@ -70,7 +71,7 @@ export function ResultsPanel({
   ruleConfig: RuleConfig;
   shareUrl: string | null;
 }) {
-  const [tab, setTab] = useState<"step" | "explore">("step");
+  const [tab, setTab] = useState<"step" | "explore" | "graph">("step");
 
   useEffect(() => {
     if (state.status === "done") setTab("step");
@@ -96,11 +97,14 @@ export function ResultsPanel({
                 options={[
                   { value: "step", label: "逐步演示" },
                   { value: "explore", label: "策略浏览" },
+                  { value: "graph", label: "策略图" },
                 ]}
                 value={tab}
                 onChange={setTab}
               />
-              {tab === "step" ? <Stepper root={state.result.strategy} /> : <Explorer root={state.result.strategy} />}
+              {tab === "step" && <Stepper root={state.result.strategy} />}
+              {tab === "explore" && <Explorer root={state.result.strategy} />}
+              {tab === "graph" && <StrategyGraph root={state.result.strategy} />}
             </>
           )}
         </div>

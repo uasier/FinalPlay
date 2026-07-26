@@ -1,4 +1,5 @@
 import { StrategyNode } from "./solve";
+import { collectScenes } from "./strategy-scenes";
 import { formatPlay } from "./format";
 import { RANK_LABELS } from "./ranks";
 import { Counts, RankValue } from "./types";
@@ -40,19 +41,8 @@ export function buildStrategyMarkdown(
   rules: RuleConfig,
   opts?: { shareUrl?: string | null },
 ): StrategyText {
-  // 局面编号表：仅对「轮到 B 且有分支」的节点编号；queue 按编号顺序待展开
-  const sceneId = new Map<StrategyNode, number>();
-  const queue: StrategyNode[] = [];
-
-  function refScene(node: StrategyNode): string {
-    let id = sceneId.get(node);
-    if (id === undefined) {
-      id = sceneId.size + 1;
-      sceneId.set(node, id);
-      queue.push(node);
-    }
-    return `局面 #${id}`;
-  }
+  // 局面编号与展开顺序由 collectScenes 统一给出（与策略图共享，编号一致）
+  const { scenes, idOf } = collectScenes(root);
 
   /** 描述 A 在某节点的唯一策略招法，以及其去向（终局或下一个 B 局面） */
   function describeAStep(aNode: StrategyNode): string {
@@ -60,7 +50,7 @@ export function buildStrategyMarkdown(
     const { move, next } = aNode.children[0];
     const action = move.kind === "PASS" ? "A 过" : `A 出「${formatPlay(move.play)}」`;
     if (next.children.length === 0) return `${action}，A 手牌出完 —— 获胜`;
-    return `${action} → 转入 ${refScene(next)}`;
+    return `${action} → 转入 局面 #${idOf.get(next)!}`;
   }
 
   const lines: string[] = [];
@@ -80,9 +70,8 @@ export function buildStrategyMarkdown(
   lines.push("## 开局（A 自由出牌）");
   lines.push(describeAStep(root));
 
-  // 逐个展开 B 决策局面；展开过程中可能追加新局面，用下标循环
-  for (let i = 0; i < queue.length; i += 1) {
-    const node = queue[i];
+  for (let i = 0; i < scenes.length; i += 1) {
+    const node = scenes[i];
     const constraintText = node.constraint
       ? `B 需大过「${formatPlay(node.constraint)}」`
       : "B 自由出牌";
@@ -96,7 +85,7 @@ export function buildStrategyMarkdown(
   }
 
   lines.push("");
-  lines.push(`> 共 ${queue.length} 个决策局面。由「斗地主残局破解」穷举证明生成。`);
+  lines.push(`> 共 ${scenes.length} 个决策局面。由「斗地主残局破解」穷举证明生成。`);
 
-  return { markdown: lines.join("\n"), sceneCount: queue.length };
+  return { markdown: lines.join("\n"), sceneCount: scenes.length };
 }
