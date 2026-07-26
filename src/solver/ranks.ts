@@ -14,8 +14,8 @@ export const RANK_LABELS: Record<RankValue, string> = {
   10: "K",
   11: "A",
   12: "2",
-  13: "SJ",
-  14: "BJ"
+  13: "小王",
+  14: "大王"
 };
 
 export function isStraightRank(v: RankValue): boolean {

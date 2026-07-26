@@ -2,25 +2,30 @@
 export default {
   content: ["./index.html", "./src/**/*.{ts,tsx}"],
   theme: {
-    extend: {
-      colors: {
-        base: {
-          bg: "#0F172A",
-          primary: "#1E293B",
-          secondary: "#334155",
-          cta: "#22C55E",
-          text: "#F8FAFC"
-        }
-      },
-      fontFamily: {
-        display: ["Russo One", "system-ui", "sans-serif"],
-        body: ["Chakra Petch", "system-ui", "sans-serif"]
-      },
-      boxShadow: {
-        neon: "0 0 0 1px rgba(34,197,94,0.35), 0 0 20px rgba(34,197,94,0.15)"
-      }
-    }
+    fontFamily: {
+      sans: [
+        "-apple-system",
+        "BlinkMacSystemFont",
+        '"Segoe UI"',
+        "Roboto",
+        '"PingFang SC"',
+        '"Hiragino Sans GB"',
+        '"Microsoft YaHei"',
+        '"Helvetica Neue"',
+        "Arial",
+        "sans-serif",
+      ],
+      mono: [
+        "ui-monospace",
+        "SFMono-Regular",
+        "Menlo",
+        "Consolas",
+        '"PingFang SC"',
+        '"Microsoft YaHei"',
+        "monospace",
+      ],
+    },
+    extend: {},
   },
-  plugins: []
+  plugins: [],
 };
-
