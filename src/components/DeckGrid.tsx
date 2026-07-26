@@ -1,72 +1,60 @@
-import { Card, DECK, Owner } from "../solver/cards";
+import { useMemo } from "react";
+import { Card, DECK } from "../solver/cards";
+import { CardFace } from "./CardFace";
+import { OwnerById } from "../hooks/useHands";
 
-type Tool = Owner | "erase";
+type RankGroup = { key: string; label: string; cards: Card[] };
 
-function suitColor(card: Card): string {
-  if (card.suit === "JOKER") return "text-amber-200";
-  if (card.suit === "♥" || card.suit === "♦") return "text-rose-300";
-  return "text-slate-200";
+function buildGroups(): RankGroup[] {
+  const groups = new Map<string, RankGroup>();
+  for (const card of DECK) {
+    const key = card.suit === "JOKER" ? "JOKER" : card.rankLabel;
+    const label = card.suit === "JOKER" ? "王" : card.rankLabel;
+    const group = groups.get(key) ?? { key, label, cards: [] };
+    group.cards.push(card);
+    groups.set(key, group);
+  }
+  return [...groups.values()];
 }
 
-function ownerBadge(owner: Owner | null): string {
-  if (!owner) return "bg-white/5 text-slate-300 border-white/10";
-  if (owner === "A") return "bg-sky-500/20 text-sky-200 border-sky-400/30";
-  return "bg-fuchsia-500/20 text-fuchsia-200 border-fuchsia-400/30";
-}
-
+/**
+ * 牌库：按点数分组（同点数 4 张花色一组、双王一组），
+ * auto-fill 网格自适应任意屏宽。点击行为见 useHands.tapCard。
+ */
 export function DeckGrid({
-  tool,
   ownerById,
-  onAssign
+  onTap,
 }: {
-  tool: Tool;
-  ownerById: Record<string, Owner | null>;
-  onAssign: (cardId: string) => void;
+  ownerById: OwnerById;
+  onTap: (cardId: string) => void;
 }) {
-  return (
-    <div className="rounded-xl border border-white/10 bg-black/20 p-3">
-      <div className="mb-2 flex items-center justify-between gap-2">
-        <div className="text-sm text-slate-300">
-          全牌库（点击指派 / 擦除） · 当前工具：
-          <span className="ml-2 rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-xs">
-            {tool === "erase" ? "橡皮擦" : `指派给 ${tool}`}
-          </span>
-        </div>
-        <div className="text-xs text-slate-400">提示：出牌大小只看点数顺序（3~大王）。</div>
-      </div>
+  const groups = useMemo(buildGroups, []);
 
-      <div className="grid grid-cols-6 gap-2 sm:grid-cols-8 md:grid-cols-10 lg:grid-cols-12">
-        {DECK.map((card) => {
-          const owner = ownerById[card.id] ?? null;
-          const disabled = owner !== null && tool !== "erase" && owner !== tool;
-          return (
-            <button
-              key={card.id}
-              type="button"
-              onClick={() => onAssign(card.id)}
-              className={[
-                "group relative flex items-center justify-between gap-2 rounded-lg border px-2 py-2 text-left text-xs transition",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-base-cta/60",
-                disabled ? "opacity-70" : "hover:bg-white/10",
-                owner ? "bg-white/10" : "bg-white/5",
-                "border-white/10"
-              ].join(" ")}
-              title={card.longLabel}
-              aria-label={`${card.longLabel}${owner ? `，当前属于${owner}` : ""}`}
-            >
-              <span className={`font-semibold ${suitColor(card)}`}>
-                {card.rankLabel}
-                <span className="ml-1 opacity-80">{card.suitLabel}</span>
-              </span>
-              <span className={`rounded-md border px-1.5 py-0.5 ${ownerBadge(owner)}`}>
-                {owner ?? "—"}
-              </span>
-              <span className="pointer-events-none absolute inset-0 rounded-lg opacity-0 ring-1 ring-base-cta/30 transition group-hover:opacity-100" />
-            </button>
-          );
-        })}
-      </div>
+  return (
+    <div className="grid gap-x-3 gap-y-3 [grid-template-columns:repeat(auto-fill,minmax(142px,1fr))] sm:gap-x-4 sm:[grid-template-columns:repeat(auto-fill,minmax(166px,1fr))]">
+      {groups.map((group) => (
+        <div key={group.key}>
+          <div className="mb-1 text-xs font-semibold text-slate-400">{group.label}</div>
+          <div className="flex gap-1 sm:gap-1.5">
+            {group.cards.map((card) => {
+              const owner = ownerById[card.id] ?? null;
+              return (
+                <button
+                  key={card.id}
+                  type="button"
+                  onClick={() => onTap(card.id)}
+                  className="group rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/60 focus-visible:ring-offset-1"
+                  aria-pressed={owner !== null}
+                  aria-label={`${card.longLabel}${owner ? `，已归玩家 ${owner}` : ""}`}
+                  title={card.longLabel}
+                >
+                  <CardFace card={card} size="sm" owner={owner} interactive />
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
-

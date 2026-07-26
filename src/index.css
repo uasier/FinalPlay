@@ -1,17 +1,19 @@
-@import url("https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@300;400;500;600;700&family=Russo+One&display=swap");
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    color-scheme: dark;
+    color-scheme: light;
+  }
+
+  html {
+    -webkit-tap-highlight-color: transparent;
+    -webkit-text-size-adjust: 100%;
   }
 
   body {
-    font-family: theme("fontFamily.body");
-    background: #0b1020;
+    @apply bg-slate-100 text-slate-900 antialiased;
   }
 
   button {
@@ -21,40 +23,23 @@
   button:disabled {
     cursor: not-allowed;
   }
-}
 
-.scanlines {
-  position: relative;
-  isolation: isolate;
-}
+  /* 自定义 <details> 折叠标记 */
+  summary::-webkit-details-marker {
+    display: none;
+  }
 
-.scanlines::before {
-  content: "";
-  pointer-events: none;
-  position: absolute;
-  inset: 0;
-  opacity: 0.12;
-  mix-blend-mode: overlay;
-  background: repeating-linear-gradient(
-    to bottom,
-    rgba(248, 250, 252, 0.08),
-    rgba(248, 250, 252, 0.08) 1px,
-    rgba(0, 0, 0, 0) 2px,
-    rgba(0, 0, 0, 0) 6px
-  );
-  z-index: 0;
-}
-
-summary::-webkit-details-marker {
-  display: none;
-}
-
-summary::marker {
-  content: "";
+  summary::marker {
+    content: "";
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .scanlines::before {
-    opacity: 0.06;
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }

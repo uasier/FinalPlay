@@ -83,7 +83,15 @@ function sanitizeCounts(c: Counts): Counts {
 
 type MemoEntry = { winForA: boolean; node?: StrategyNode };
 
-export function solveGame(handA: Counts, handB: Counts, rules: RuleConfig = DEFAULT_RULE_CONFIG): SolveResult {
+/** 每访问这么多状态回调一次进度（位掩码，需为 2^n - 1）。 */
+const PROGRESS_MASK = 0x3fff;
+
+export function solveGame(
+  handA: Counts,
+  handB: Counts,
+  rules: RuleConfig = DEFAULT_RULE_CONFIG,
+  onProgress?: (stats: SolveStats) => void,
+): SolveResult {
   const playCache = new Map<string, Play[]>();
   const memo = new Map<string, MemoEntry>();
   const stats: SolveStats = { statesVisited: 0, memoHits: 0, playCacheSize: 0 };
@@ -105,6 +113,9 @@ export function solveGame(handA: Counts, handB: Counts, rules: RuleConfig = DEFA
     }
 
     stats.statesVisited += 1;
+    if (onProgress && (stats.statesVisited & PROGRESS_MASK) === 0) {
+      onProgress({ ...stats, playCacheSize: playCache.size });
+    }
     if (isEmpty(state.a)) {
       const node: StrategyNode = { turn: state.turn, constraint: state.constraint, a: state.a, b: state.b, children: [] };
       const entry: MemoEntry = { winForA: true, node };

@@ -7,200 +7,89 @@
 ---
 
 **Project:** Dou Dizhu Endgame Solver
-**Generated:** 2026-03-01 01:10:43
-**Category:** Gaming
+**Updated:** 2026-07-26（重构为明亮简洁风）
+**Category:** Tool / Gaming
 
 ---
 
 ## Global Rules
 
-### Color Palette
+### Color Palette（基于 Tailwind 内置色板，不自定义色值）
 
-| Role | Hex | CSS Variable |
-|------|-----|--------------|
-| Primary | `#1E293B` | `--color-primary` |
-| Secondary | `#334155` | `--color-secondary` |
-| CTA/Accent | `#22C55E` | `--color-cta` |
-| Background | `#0F172A` | `--color-background` |
-| Text | `#F8FAFC` | `--color-text` |
+| Role | Tailwind Token | Usage |
+|------|----------------|-------|
+| Background | `slate-100` | 页面底色 |
+| Surface | `white` + `border-slate-200` + `shadow-sm` | 面板 / 卡片 |
+| Text 主 | `slate-900` | 标题正文 |
+| Text 次 | `slate-500` / `slate-400` | 说明、提示 |
+| CTA / 品牌 | `emerald-600`（hover `emerald-700`） | 主按钮、选中态、成功 |
+| 玩家 A | `blue-600` 系（chip: `blue-50/200/700`） | A 的所有视觉标识 |
+| 玩家 B | `orange-500` 系（chip: `orange-50/200/700`） | B 的所有视觉标识 |
+| 红花色 | `red-600` | ♥ ♦ 与大王 |
+| 黑花色 | `slate-800` | ♠ ♣ 与小王 |
+| 警示 | `amber-*`（未必胜）/ `red-*`（错误） | 状态横幅 |
 
-**Color Notes:** Code dark + run green
+**原则：** 玩家色（蓝 A / 橙 B）在全站唯一且一致——徽标、描边、胶囊、分段控件共用 `src/components/players.ts` 中的 `PLAYER_THEME`，禁止散落硬编码。
 
 ### Typography
 
-- **Heading Font:** Russo One
-- **Body Font:** Chakra Petch
-- **Mood:** gaming, bold, action, esports, competitive, energetic
-- **Google Fonts:** [Russo One + Chakra Petch](https://fonts.google.com/share?selection.family=Chakra+Petch:wght@300;400;500;600;700|Russo+One)
+- 系统字体栈（无外部字体请求）：`-apple-system, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", …`
+- 牌面点数 / 出牌文本：`font-mono` + `tabular-nums`
+- 标题：`font-semibold`/`font-bold`，不使用装饰性字体
 
-**CSS Import:**
-```css
-@import url('https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@300;400;500;600;700&family=Russo+One&display=swap');
-```
+### 组件基元（一律复用 `src/ui/`）
 
-### Spacing Variables
+- **Button**：`primary`（emerald 实底）/ `subtle`（白底描边）/ `ghost`（无底）× `sm/md/lg`
+- **Segmented**：互斥选项组，选中态白底阴影（或玩家色）
+- **Panel**：`rounded-2xl border-slate-200 bg-white shadow-sm`，标题 + 副标题 + 右侧动作
 
-| Token | Value | Usage |
-|-------|-------|-------|
-| `--space-xs` | `4px` / `0.25rem` | Tight gaps |
-| `--space-sm` | `8px` / `0.5rem` | Icon gaps, inline spacing |
-| `--space-md` | `16px` / `1rem` | Standard padding |
-| `--space-lg` | `24px` / `1.5rem` | Section padding |
-| `--space-xl` | `32px` / `2rem` | Large gaps |
-| `--space-2xl` | `48px` / `3rem` | Section margins |
-| `--space-3xl` | `64px` / `4rem` | Hero padding |
+### 圆角 / 阴影
 
-### Shadow Depths
+- 面板 `rounded-2xl`，控件 `rounded-lg`/`rounded-xl`，胶囊 `rounded-full`
+- 阴影只用 `shadow-sm`，悬停最多 `shadow-md`；禁止霓虹光晕
 
-| Level | Value | Usage |
-|-------|-------|-------|
-| `--shadow-sm` | `0 1px 2px rgba(0,0,0,0.05)` | Subtle lift |
-| `--shadow-md` | `0 4px 6px rgba(0,0,0,0.1)` | Cards, buttons |
-| `--shadow-lg` | `0 10px 15px rgba(0,0,0,0.1)` | Modals, dropdowns |
-| `--shadow-xl` | `0 20px 25px rgba(0,0,0,0.15)` | Hero images, featured cards |
+### 响应式
 
----
-
-## Component Specs
-
-### Buttons
-
-```css
-/* Primary Button */
-.btn-primary {
-  background: #22C55E;
-  color: white;
-  padding: 12px 24px;
-  border-radius: 8px;
-  font-weight: 600;
-  transition: all 200ms ease;
-  cursor: pointer;
-}
-
-.btn-primary:hover {
-  opacity: 0.9;
-  transform: translateY(-1px);
-}
-
-/* Secondary Button */
-.btn-secondary {
-  background: transparent;
-  color: #1E293B;
-  border: 2px solid #1E293B;
-  padding: 12px 24px;
-  border-radius: 8px;
-  font-weight: 600;
-  transition: all 200ms ease;
-  cursor: pointer;
-}
-```
-
-### Cards
-
-```css
-.card {
-  background: #0F172A;
-  border-radius: 12px;
-  padding: 24px;
-  box-shadow: var(--shadow-md);
-  transition: all 200ms ease;
-  cursor: pointer;
-}
-
-.card:hover {
-  box-shadow: var(--shadow-lg);
-  transform: translateY(-2px);
-}
-```
-
-### Inputs
-
-```css
-.input {
-  padding: 12px 16px;
-  border: 1px solid #E2E8F0;
-  border-radius: 8px;
-  font-size: 16px;
-  transition: border-color 200ms ease;
-}
-
-.input:focus {
-  border-color: #1E293B;
-  outline: none;
-  box-shadow: 0 0 0 3px #1E293B20;
-}
-```
-
-### Modals
-
-```css
-.modal-overlay {
-  background: rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(4px);
-}
-
-.modal {
-  background: white;
-  border-radius: 16px;
-  padding: 32px;
-  box-shadow: var(--shadow-xl);
-  max-width: 500px;
-  width: 90%;
-}
-```
+- 断点走查基线：360 / 375 / 768 / 1024 / 1440，禁止横向溢出
+- 桌面（`lg+`）：设置区 3fr + 结果区 2fr 双栏，结果区 `sticky top-5`
+- 移动端：单列；求解操作吸底（`fixed bottom-0` + `env(safe-area-inset-bottom)`），页面底部预留 `pb-28`
+- 牌库使用 `auto-fill minmax()` 网格自适应任意宽度
+- 触控目标：卡牌 ≥ 32×44px，按钮 ≥ 32px 高
 
 ---
 
 ## Style Guidelines
 
-**Style:** Retro-Futurism
+**Style:** 明亮简洁的工具风（Light, clean, utilitarian）
 
-**Keywords:** Vintage sci-fi, 80s aesthetic, neon glow, geometric patterns, CRT scanlines, pixel art, cyberpunk, synthwave
+**Keywords:** 白色面板、留白、低饱和底 + 高对比内容、真实扑克牌隐喻、即时反馈
 
-**Best For:** Gaming, entertainment, music platforms, tech brands, artistic projects, nostalgic, cyberpunk
+**Key Patterns:**
 
-**Key Effects:** CRT scanlines (::before overlay), neon glow (text-shadow+box-shadow), glitch effects (skew/offset keyframes)
-
-### Page Pattern
-
-**Pattern Name:** Horizontal Scroll Journey
-
-- **Conversion Strategy:** Immersive product discovery. High engagement. Keep navigation visible.
-28,Bento Grid Showcase,bento,  grid,  features,  modular,  apple-style,  showcase", 1. Hero, 2. Bento Grid (Key Features), 3. Detail Cards, 4. Tech Specs, 5. CTA, Floating Action Button or Bottom of Grid, Card backgrounds: #F5F5F7 or Glass. Icons: Vibrant brand colors. Text: Dark., Hover card scale (1.02), video inside cards, tilt effect, staggered reveal, Scannable value props. High information density without clutter. Mobile stack.
-29,Interactive 3D Configurator,3d,  configurator,  customizer,  interactive,  product", 1. Hero (Configurator), 2. Feature Highlight (synced), 3. Price/Specs, 4. Purchase, Inside Configurator UI + Sticky Bottom Bar, Neutral studio background. Product: Realistic materials. UI: Minimal overlay., Real-time rendering, material swap animation, camera rotate/zoom, light reflection, Increases ownership feeling. 360 view reduces return rates. Direct add-to-cart.
-30,AI-Driven Dynamic Landing,ai,  dynamic,  personalized,  adaptive,  generative", 1. Prompt/Input Hero, 2. Generated Result Preview, 3. How it Works, 4. Value Prop, Input Field (Hero) + 'Try it' Buttons, Adaptive to user input. Dark mode for compute feel. Neon accents., Typing text effects, shimmering generation loaders, morphing layouts, Immediate value demonstration. 'Show, don't tell'. Low friction start.
-- **CTA Placement:** Floating Sticky CTA or End of Horizontal Track
-- **Section Order:** 1. Intro (Vertical), 2. The Journey (Horizontal Track), 3. Detail Reveal, 4. Vertical Footer
+- 状态即视觉：成功 emerald 横幅 / 未必胜 amber / 错误 red / 进行中 spinner + 实时计数
+- 空态必须给引导（三步开始 + 载入示例）
+- 长任务（求解）永不阻塞 UI：Web Worker + 进度 + 取消
 
 ---
 
 ## Anti-Patterns (Do NOT Use)
 
-- ❌ Minimalist design
-- ❌ Static assets
-
-### Additional Forbidden Patterns
-
-- ❌ **Emojis as icons** — Use SVG icons (Heroicons, Lucide, Simple Icons)
-- ❌ **Missing cursor:pointer** — All clickable elements must have cursor:pointer
-- ❌ **Layout-shifting hovers** — Avoid scale transforms that shift layout
-- ❌ **Low contrast text** — Maintain 4.5:1 minimum contrast ratio
-- ❌ **Instant state changes** — Always use transitions (150-300ms)
-- ❌ **Invisible focus states** — Focus states must be visible for a11y
+- ❌ 暗色 / 霓虹 / 扫描线等装饰效果（已在重构中移除）
+- ❌ Emojis as icons — 用内联 SVG（Heroicons 风格）或文本字形（如 ♠）
+- ❌ Missing cursor:pointer — 所有可点元素必须有
+- ❌ Layout-shifting hovers — 悬停不得引起布局位移
+- ❌ Low contrast text — 正文对比度 ≥ 4.5:1
+- ❌ Instant state changes — 过渡 150–300ms
+- ❌ Invisible focus states — 键盘焦点必须可见（`focus-visible:ring-2 ring-emerald-500/60`）
+- ❌ 外部字体 / 不必要的网络请求
 
 ---
 
 ## Pre-Delivery Checklist
 
-Before delivering any UI code, verify:
-
-- [ ] No emojis used as icons (use SVG instead)
-- [ ] All icons from consistent icon set (Heroicons/Lucide)
-- [ ] `cursor-pointer` on all clickable elements
-- [ ] Hover states with smooth transitions (150-300ms)
-- [ ] Light mode: text contrast 4.5:1 minimum
-- [ ] Focus states visible for keyboard navigation
-- [ ] `prefers-reduced-motion` respected
-- [ ] Responsive: 375px, 768px, 1024px, 1440px
-- [ ] No content hidden behind fixed navbars
-- [ ] No horizontal scroll on mobile
+- [ ] 玩家色仅来自 `PLAYER_THEME`
+- [ ] 按钮 / 分段控件 / 面板均复用 `src/ui/` 基元
+- [ ] `cursor-pointer`、focus ring、150–300ms 过渡齐备
+- [ ] `prefers-reduced-motion` 生效（见 `index.css`）
+- [ ] 360 / 375 / 768 / 1024 / 1440 无横向滚动
+- [ ] 移动端内容不被吸底栏遮挡（`pb-28` + safe-area）

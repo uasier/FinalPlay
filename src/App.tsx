@@ -1,173 +1,211 @@
-import { useEffect, useMemo, useState } from "react";
-import { Card, DECK, Owner, cardsToCounts } from "./solver/cards";
-import { SolveResult, solveGame } from "./solver/solve";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { cardsToCounts, DECK } from "./solver/cards";
+import { PRESETS } from "./solver/presets";
+import { decodeShareHash, encodeShareHash } from "./solver/share";
+import { RuleConfig } from "./solver/rule-config";
+import { Counts } from "./solver/types";
+import { useHands } from "./hooks/useHands";
+import { useRuleConfig } from "./hooks/useRuleConfig";
+import { useSolver } from "./hooks/useSolver";
+import { Button } from "./ui/Button";
+import { Panel } from "./ui/Panel";
+import { Segmented } from "./ui/Segmented";
+import { HandList } from "./components/HandList";
 import { DeckGrid } from "./components/DeckGrid";
-import { Hand } from "./components/Hand";
-import { StrategyPanel } from "./components/StrategyPanel";
 import { RuleConfigPanel } from "./components/RuleConfigPanel";
-import { DEFAULT_RULE_CONFIG, normalizeRuleConfig, RuleConfig } from "./solver/rule-config";
-
-type Tool = Owner | "erase";
-
-function getCardsForOwner(ownerById: Record<string, Owner | null>, owner: Owner): Card[] {
-  return DECK.filter((c) => ownerById[c.id] === owner);
-}
+import { SolveControls } from "./components/SolveControls";
+import { ResultsPanel } from "./components/results/ResultsPanel";
+import { PLAYER_THEME } from "./components/players";
+import { Owner } from "./solver/cards";
 
 export default function App() {
-  const [tool, setTool] = useState<Tool>("A");
-  const [ownerById, setOwnerById] = useState<Record<string, Owner | null>>(() => {
-    const base: Record<string, Owner | null> = {};
-    for (const c of DECK) base[c.id] = null;
-    return base;
-  });
+  const hands = useHands();
+  const { ruleConfig, setRuleConfig } = useRuleConfig();
+  const solver = useSolver();
+  const [presetIndex, setPresetIndex] = useState(0);
+  const resultsRef = useRef<HTMLDivElement | null>(null);
+  /** 分享链接解析出的待求解局面：先让牌面与规则状态落地，再自动触发求解 */
+  const [pendingSolve, setPendingSolve] = useState<{
+    a: Counts;
+    b: Counts;
+    rules: RuleConfig;
+  } | null>(null);
 
-  const [ruleConfig, setRuleConfig] = useState<RuleConfig>(() => {
-    if (typeof window === "undefined") return DEFAULT_RULE_CONFIG;
-    try {
-      const raw = localStorage.getItem("ruleConfig.v1");
-      if (!raw) return DEFAULT_RULE_CONFIG;
-      return normalizeRuleConfig(JSON.parse(raw));
-    } catch {
-      return DEFAULT_RULE_CONFIG;
-    }
-  });
+  const solving = solver.state.status === "solving";
+  const { reset, solve } = solver;
+  const { loadPreset } = hands;
 
-  const [solving, setSolving] = useState(false);
-  const [result, setResult] = useState<SolveResult | null>(null);
-  const cardsA = useMemo(() => getCardsForOwner(ownerById, "A"), [ownerById]);
-  const cardsB = useMemo(() => getCardsForOwner(ownerById, "B"), [ownerById]);
-
+  // 首次加载解析分享链接：载入牌面与规则，并登记自动求解
   useEffect(() => {
-    setResult(null);
-  }, [ruleConfig]);
+    const payload = decodeShareHash(window.location.hash);
+    if (!payload) return;
+    loadPreset({ name: "分享局面", description: "来自分享链接", a: payload.a, b: payload.b });
+    setRuleConfig(payload.rules);
+    const byId = new Map(DECK.map((c) => [c.id, c]));
+    setPendingSolve({
+      a: cardsToCounts(payload.a.map((id) => byId.get(id)!)),
+      b: cardsToCounts(payload.b.map((id) => byId.get(id)!)),
+      rules: payload.rules,
+    });
+  }, [loadPreset, setRuleConfig]);
 
+  // 手牌或规则变化后，旧结果不再对应当前局面
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    try {
-      localStorage.setItem("ruleConfig.v1", JSON.stringify(ruleConfig));
-    } catch {
-      // ignore
-    }
-  }, [ruleConfig]);
+    reset();
+  }, [hands.ownerById, ruleConfig, reset]);
 
-  function setOwner(cardId: string, nextOwner: Owner | null) {
-    setOwnerById((prev) => {
-      if (prev[cardId] === nextOwner) return prev;
-      return { ...prev, [cardId]: nextOwner };
-    });
+  // 分享局面自动求解：声明在重置副作用之后，确保同一轮渲染中先重置再求解
+  useEffect(() => {
+    if (!pendingSolve) return;
+    setPendingSolve(null);
+    solve(pendingSolve.a, pendingSolve.b, pendingSolve.rules);
+  }, [pendingSolve, solve]);
+
+  // 当前牌面与规则对应的分享链接（双方均有手牌时可用）
+  const shareUrl = useMemo(() => {
+    if (hands.cardsA.length === 0 || hands.cardsB.length === 0) return null;
+    const hash = encodeShareHash(
+      hands.cardsA.map((c) => c.id),
+      hands.cardsB.map((c) => c.id),
+      ruleConfig,
+    );
+    return `${window.location.origin}${window.location.pathname}#${hash}`;
+  }, [hands.cardsA, hands.cardsB, ruleConfig]);
+
+  // 移动端求解完成后滚动到结果区
+  useEffect(() => {
+    if (solver.state.status !== "done") return;
+    if (window.matchMedia("(min-width: 1024px)").matches) return;
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    resultsRef.current?.scrollIntoView({ behavior: reduced ? "auto" : "smooth", block: "start" });
+  }, [solver.state.status]);
+
+  function onSolve() {
+    solver.solve(cardsToCounts(hands.cardsA), cardsToCounts(hands.cardsB), ruleConfig);
   }
 
-  function clearHands() {
-    setOwnerById((prev) => {
-      const next: Record<string, Owner | null> = { ...prev };
-      for (const id of Object.keys(next)) next[id] = null;
-      return next;
-    });
-    setResult(null);
+  function onLoadPreset() {
+    hands.loadPreset(PRESETS[presetIndex % PRESETS.length]);
+    setPresetIndex((i) => i + 1);
   }
-
-  async function onSolve() {
-    setSolving(true);
-    setResult(null);
-    await new Promise((r) => setTimeout(r, 0));
-    try {
-      const handA = cardsToCounts(cardsA);
-      const handB = cardsToCounts(cardsB);
-      setResult(solveGame(handA, handB, ruleConfig));
-    } finally {
-      setSolving(false);
-    }
-  }
-
-  const canSolve = cardsA.length > 0 && cardsB.length > 0 && !solving;
 
   return (
-    <div className="min-h-dvh bg-base-bg text-base-text">
-      <div className="mx-auto max-w-7xl px-4 py-6 md:px-6">
-        <header className="scanlines relative overflow-hidden rounded-2xl border border-white/10 bg-white/5 p-5 shadow-lg">
-          <div className="relative z-10 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-            <div>
-              <h1 className="font-display text-2xl tracking-wide md:text-3xl">斗地主残局破解</h1>
-              <p className="mt-1 text-sm text-slate-300">
-                设置 A/B 手牌，点击求解，输出「A 必胜（B 任意应对都会输）」的策略树。
+    <div className="min-h-dvh">
+      <header className="border-b border-slate-200 bg-white">
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-4 gap-y-2 px-4 py-4 sm:px-6">
+          <div className="flex min-w-0 items-center gap-3">
+            <span
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-600 text-lg text-white shadow-sm"
+              aria-hidden
+            >
+              ♠
+            </span>
+            <div className="min-w-0">
+              <h1 className="text-lg font-bold leading-tight text-slate-900">斗地主残局破解</h1>
+              <p className="truncate text-xs text-slate-500">
+                两人残局 · 穷举证明 A 先手必胜策略
               </p>
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="flex rounded-xl border border-white/10 bg-black/20 p-1">
-                <button
-                  type="button"
-                  className={`rounded-lg px-3 py-2 text-sm transition ${
-                    tool === "A" ? "bg-white/10 shadow-neon" : "hover:bg-white/5"
-                  }`}
-                  onClick={() => setTool("A")}
-                >
-                  指派给 A
-                </button>
-                <button
-                  type="button"
-                  className={`rounded-lg px-3 py-2 text-sm transition ${
-                    tool === "B" ? "bg-white/10 shadow-neon" : "hover:bg-white/5"
-                  }`}
-                  onClick={() => setTool("B")}
-                >
-                  指派给 B
-                </button>
-                <button
-                  type="button"
-                  className={`rounded-lg px-3 py-2 text-sm transition ${
-                    tool === "erase" ? "bg-white/10 shadow-neon" : "hover:bg-white/5"
-                  }`}
-                  onClick={() => setTool("erase")}
-                >
-                  橡皮擦
-                </button>
-              </div>
-
-              <button
-                type="button"
-                className="rounded-xl border border-base-cta/40 bg-base-cta px-4 py-2 text-sm font-semibold text-black shadow-neon transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
-                onClick={onSolve}
-                disabled={!canSolve}
-              >
-                {solving ? "求解中…" : "求解（A 先手）"}
-              </button>
-              <button
-                type="button"
-                className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm transition hover:bg-white/10"
-                onClick={clearHands}
-              >
-                清空
-              </button>
             </div>
           </div>
-        </header>
+          <div className="ml-auto flex items-center gap-2">
+            <Button
+              size="sm"
+              disabled={solving}
+              onClick={onLoadPreset}
+              title={`下一个示例：${PRESETS[presetIndex % PRESETS.length].name}`}
+            >
+              载入示例
+            </Button>
+            <Button variant="ghost" size="sm" disabled={solving} onClick={hands.clearAll}>
+              清空全部
+            </Button>
+          </div>
+        </div>
+      </header>
 
-        <main className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-12">
-          <section className="lg:col-span-7">
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-4 shadow-lg">
-              <h2 className="font-display text-lg tracking-wide">设置初始手牌</h2>
-              <p className="mt-1 text-sm text-slate-300">
-                选中工具后点击牌面即可指派。花色仅用于区分卡牌，不影响斗地主大小比较。
-              </p>
-              <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
-                <Hand owner="A" cards={cardsA} onRemove={(id) => setOwner(id, null)} />
-                <Hand owner="B" cards={cardsB} onRemove={(id) => setOwner(id, null)} />
+      <main className="mx-auto max-w-6xl px-4 pb-28 pt-5 sm:px-6 lg:pb-10">
+        <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
+          {/* 左：设置手牌 */}
+          <Panel
+            title="设置手牌"
+            subtitle="花色仅用于区分卡牌，大小只看点数（3 < … < 2 < 小王 < 大王）"
+          >
+            <div className={solving ? "pointer-events-none opacity-60" : ""}>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <HandList
+                  owner="A"
+                  cards={hands.cardsA}
+                  onRemove={hands.removeCard}
+                  onClear={() => hands.clearOwner("A")}
+                />
+                <HandList
+                  owner="B"
+                  cards={hands.cardsB}
+                  onRemove={hands.removeCard}
+                  onClear={() => hands.clearOwner("B")}
+                />
               </div>
-	              <div className="mt-4">
-	                <DeckGrid
-	                  tool={tool}
-	                  ownerById={ownerById}
-	                  onAssign={(cardId) => setOwner(cardId, tool === "erase" ? null : tool)}
-	                />
-	              </div>
-	              <RuleConfigPanel config={ruleConfig} onChange={setRuleConfig} disabled={solving} />
-	            </div>
-	          </section>
 
-          <section className="lg:col-span-5">
-            <StrategyPanel solving={solving} result={result} />
-          </section>
-        </main>
+              {/* 选牌工具条：滚动牌库时保持可见 */}
+              <div className="sticky top-0 z-10 -mx-1 mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl bg-white/95 px-1 py-2 backdrop-blur">
+                <Segmented<Owner>
+                  options={[
+                    { value: "A", label: "为 A 选牌" },
+                    { value: "B", label: "为 B 选牌" },
+                  ]}
+                  value={hands.active}
+                  onChange={hands.setActive}
+                  activeClassName={(v) => PLAYER_THEME[v].segActive}
+                />
+                <span className="text-xs text-slate-400">
+                  点击牌面分配给 {hands.active}，再点一次移除
+                </span>
+              </div>
+
+              <div className="mt-2">
+                <DeckGrid ownerById={hands.ownerById} onTap={hands.tapCard} />
+              </div>
+
+              <div className="mt-4">
+                <RuleConfigPanel config={ruleConfig} onChange={setRuleConfig} disabled={solving} />
+              </div>
+            </div>
+
+            {/* 桌面端求解按钮 */}
+            <div className="mt-5 hidden border-t border-slate-100 pt-4 lg:block">
+              <SolveControls
+                countA={hands.cardsA.length}
+                countB={hands.cardsB.length}
+                solving={solving}
+                onSolve={onSolve}
+                onCancel={solver.cancel}
+              />
+            </div>
+          </Panel>
+
+          {/* 右：求解结果 */}
+          <div ref={resultsRef} className="scroll-mt-4 lg:sticky lg:top-5">
+            <ResultsPanel
+              state={solver.state}
+              onCancel={solver.cancel}
+              ruleConfig={ruleConfig}
+              shareUrl={shareUrl}
+            />
+          </div>
+        </div>
+      </main>
+
+      {/* 移动端吸底求解栏 */}
+      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 px-4 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] pt-3 backdrop-blur lg:hidden">
+        <div className="mx-auto max-w-6xl">
+          <SolveControls
+            countA={hands.cardsA.length}
+            countB={hands.cardsB.length}
+            solving={solving}
+            onSolve={onSolve}
+            onCancel={solver.cancel}
+          />
+        </div>
       </div>
     </div>
   );
